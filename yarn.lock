@@ -2,6 +2,16 @@
 # yarn lockfile v1
 
 
+"@types/lodash@^4.14.149":
+  version "4.14.149"
+  resolved "https://artifactory.twitter.biz:443/api/npm/js-virtual/@types/lodash/-/lodash-4.14.149.tgz#1342d63d948c6062838fbf961012f74d4e638440"
+  integrity sha1-E0LWPZSMYGKDj7+WEBL3TU5jhEA=
+
+"@types/node@^13.11.0":
+  version "13.11.0"
+  resolved "https://artifactory.twitter.biz:443/api/npm/js-virtual/@types/node/-/node-13.11.0.tgz#390ea202539c61c8fa6ba4428b57e05bc36dc47b"
+  integrity sha1-OQ6iAlOcYcj6a6RCi1fgW8NtxHs=
+
 arg@^4.1.0:
   version "4.1.3"
   resolved "https://artifactory.twitter.biz:443/api/npm/js-virtual/arg/-/arg-4.1.3.tgz#269fc7ad5b8e42cb63c896d5666017261c144089"

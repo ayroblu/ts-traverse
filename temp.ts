@@ -1,6 +1,4 @@
-import fs from 'fs';
-
-import ts from 'typescript';
+import ts from "typescript";
 
 interface DocEntry {
   name?: string;
@@ -72,9 +70,9 @@ function generateDocumentation(
     // it's left to you to expand this list, which you can do by using
     // https://ts-ast-viewer.com/ to see the AST of a file then use the same patterns
     // as below
-    let name = '';
+    let name = "";
     if (ts.isFunctionDeclaration(node)) {
-      name = node.name.text;
+      name = node.name!.text;
       // Hide the method body when printing
       node.body = undefined;
     } else if (ts.isVariableStatement(node)) {
@@ -85,13 +83,13 @@ function generateDocumentation(
       name = node.name.text;
     }
 
-    if (name && node.name) {
-      let symbol = checker.getSymbolAtLocation(node.name);
+    if (name && (node as any).name) {
+      let symbol = checker.getSymbolAtLocation((node as any).name);
       if (symbol) {
         // console.log(serializeClass(symbol));
       }
       console.log(node.getSourceFile().fileName);
-      console.log('### ' + name);
+      console.log("### " + name);
       console.log(
         printer.printNode(ts.EmitHint.Unspecified, node, node.getSourceFile())
       );
@@ -168,15 +166,15 @@ const parseConfigHost: ts.ParseConfigHost = {
 };
 
 const configFileName = ts.findConfigFile(
-  './',
+  "./",
   ts.sys.fileExists,
-  'tsconfig.json'
+  "tsconfig.json"
 );
 const configFile = ts.readConfigFile(configFileName!, ts.sys.readFile);
 const { options: compilerOptions } = ts.parseJsonConfigFileContent(
   configFile.config,
   parseConfigHost,
-  './'
+  "./"
 );
 console.log(compilerOptions);
 generateDocumentation(process.argv.slice(2), compilerOptions);

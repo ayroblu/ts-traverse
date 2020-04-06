@@ -1,10 +1,10 @@
-import { readFileSync } from 'fs';
-import path from 'path';
+import { readFileSync } from "fs";
+import path from "path";
 
-import _ from 'lodash';
-import ts from 'typescript';
+import _ from "lodash";
+import ts from "typescript";
 
-import { getCompilerOptions } from './tshelper';
+import { getCompilerOptions } from "./tshelper";
 
 const compilerOptions = getCompilerOptions();
 const resolvedFileNames = new Set<string>();
@@ -46,7 +46,7 @@ function getImportName(node: ts.Node) {
       );
       if (res.resolvedModule) {
         const { resolvedFileName } = res.resolvedModule;
-        if (resolvedFileName.includes('node_modules')) return;
+        if (resolvedFileName.includes("node_modules")) return;
         // console.log(
         //   '- name',
         //   getShortPath(node.getSourceFile().fileName),
@@ -59,12 +59,12 @@ function getImportName(node: ts.Node) {
         });
         run(resolvedFileName);
       } else {
-        console.log('fail', node.getText());
+        console.log("fail", node.getText());
       }
   }
 }
 function getShortPath(path: string) {
-  return '.' + path.replace(baseUrl, '');
+  return "." + path.replace(baseUrl, "");
 }
 
 function clusterFolders(paths: string[]) {
@@ -87,7 +87,7 @@ function groupFolders(
     .value();
   for (const [_key, values] of grouped) {
     // console.log(key);
-    list = list.concat([groupFolders([], values, depth + 1)]);
+    list = list.concat([groupFolders([], values, depth + 1)] as any[]);
   }
   return list;
 }
@@ -104,32 +104,32 @@ console.log(
     .sort()
     .map((path) => `"${path}" [label="${path}"]`)
     .map((path) => `  ${path}`)
-    .join('\n')
+    .join("\n")
 );
-console.log('\n');
+console.log("\n");
 console.log(
   Array.from(connectedFileNames)
     .map(({ from, to }) => `"${from}" -> "${to}"`)
     .sort()
     .map((path) => `  ${path}`)
-    .join('\n')
+    .join("\n")
 );
 let num = 0;
-function recursePrint(list: (string | (string | string[])[])[]) {
+function recursePrint(list: (string | (string | string[])[])[]): string {
   return list
     .map((l) => {
       if (Array.isArray(l)) {
         return `subgraph cluster_${num++} {
-  ${recursePrint(l).split('\n').join('\n  ')}
+  ${recursePrint(l).split("\n").join("\n  ")}
   }`;
       } else {
         return `"${l}" [label="${l}"]`;
       }
     })
     .map((path) => `  ${path}`)
-    .join('\n');
+    .join("\n");
 }
-console.log('\nTrying grouping');
+console.log("\nTrying grouping");
 console.log(
   recursePrint(
     clusterFolders(Array.from(resolvedFileNames).map(getShortPath).sort())
