@@ -27,6 +27,11 @@ diff@^4.0.1:
   resolved "https://artifactory.twitter.biz:443/api/npm/js-virtual/diff/-/diff-4.0.2.tgz#60f3aecb89d5fae520c11aa19efc2bb982aade7d"
   integrity sha1-YPOuy4nV+uUgwRqhnvwruYKq3n0=
 
+lodash@^4.17.15:
+  version "4.17.15"
+  resolved "https://artifactory.twitter.biz:443/api/npm/js-virtual/lodash/-/lodash-4.17.15.tgz#b447f6670a0455bbfeedd11392eff330ea097548"
+  integrity sha1-tEf2ZwoEVbv+7dETku/zMOoJdUg=
+
 make-error@^1.1.1:
   version "1.3.6"
   resolved "https://artifactory.twitter.biz:443/api/npm/js-virtual/make-error/-/make-error-1.3.6.tgz#2eb2e37ea9b67c4891f684a1394799af484cf7a2"

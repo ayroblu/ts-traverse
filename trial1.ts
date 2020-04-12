@@ -1,4 +1,4 @@
-import { readFileSync } from "fs";
+import { readFileSync, writeFileSync } from "fs";
 import path from "path";
 
 import _ from "lodash";
@@ -93,45 +93,62 @@ function groupFolders(
 }
 // resolvedFileNames = nodes;
 // connectedFileNames = arcs;
-console.log(`
-  graph[splines=polyline];
-  node[shape=record];
-  edge[color="#00000033"];
-`);
-console.log(
-  Array.from(resolvedFileNames)
-    .map(getShortPath)
-    .sort()
-    .map((path) => `"${path}" [label="${path}"]`)
-    .map((path) => `  ${path}`)
-    .join("\n")
-);
-console.log("\n");
-console.log(
-  Array.from(connectedFileNames)
-    .map(({ from, to }) => `"${from}" -> "${to}"`)
-    .sort()
-    .map((path) => `  ${path}`)
-    .join("\n")
-);
-let num = 0;
-function recursePrint(list: (string | (string | string[])[])[]): string {
-  return list
-    .map((l) => {
-      if (Array.isArray(l)) {
-        return `subgraph cluster_${num++} {
-  ${recursePrint(l).split("\n").join("\n  ")}
-  }`;
-      } else {
-        return `"${l}" [label="${l}"]`;
-      }
-    })
-    .map((path) => `  ${path}`)
-    .join("\n");
+export function printDot() {
+  console.log(`
+    graph[splines=polyline];
+    node[shape=record];
+    edge[color="#00000033"];
+  `);
+  console.log(
+    Array.from(resolvedFileNames)
+      .map(getShortPath)
+      .sort()
+      .map((path) => `"${path}" [label="${path}"]`)
+      .map((path) => `  ${path}`)
+      .join("\n")
+  );
+  console.log("\n");
+  console.log(
+    Array.from(connectedFileNames)
+      .map(({ from, to }) => `"${from}" -> "${to}"`)
+      .sort()
+      .map((path) => `  ${path}`)
+      .join("\n")
+  );
+  let num = 0;
+  function recursePrint(list: (string | (string | string[])[])[]): string {
+    return list
+      .map((l) => {
+        if (Array.isArray(l)) {
+          return `subgraph cluster_${num++} {
+    ${recursePrint(l).split("\n").join("\n  ")}
+    }`;
+        } else {
+          return `"${l}" [label="${l}"]`;
+        }
+      })
+      .map((path) => `  ${path}`)
+      .join("\n");
+  }
+  console.log("\nTrying grouping");
+  console.log(
+    recursePrint(
+      clusterFolders(Array.from(resolvedFileNames).map(getShortPath).sort())
+    )
+  );
 }
-console.log("\nTrying grouping");
-console.log(
-  recursePrint(
-    clusterFolders(Array.from(resolvedFileNames).map(getShortPath).sort())
-  )
-);
+export function writeJson() {
+  const result = {
+    nodes: Array.from(resolvedFileNames)
+      .map(getShortPath)
+      .map((id) => ({ id, group: 1 }))
+      .sort(),
+    links: Array.from(connectedFileNames).map(({ from, to }) => ({
+      source: from,
+      target: to,
+      value: 1,
+    })),
+  };
+  writeFileSync("./result.json", JSON.stringify(result, null, 2));
+}
+writeJson();
