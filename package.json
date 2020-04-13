@@ -1,4 +1,9 @@
 {
+  "name": "ts-traverse",
+  "private": true,
+  "bin": {
+    "ts-traverse": "bin/ts-traverse.js"
+  },
   "dependencies": {
     "lodash": "^4.17.15"
   },
