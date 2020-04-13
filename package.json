@@ -8,7 +8,8 @@
     "lodash": "^4.17.15"
   },
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "build:out": "tsc && bin/ts-traverse.js src/index.ts > out.gv && dot out.gv -Tpdf > out.pdf && open out.pdf"
   },
   "devDependencies": {
     "@types/lodash": "^4.14.149",
