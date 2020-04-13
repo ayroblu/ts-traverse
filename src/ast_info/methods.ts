@@ -97,10 +97,13 @@ function getImportName(node: ts.Node) {
           to: getShortPath(path.resolve(resolvedFileName)),
         });
       } else {
-        console.error("fail", node.getText());
+        if (printFails) {
+          console.error("fail", node.getText());
+        }
       }
   }
 }
+const printFails = false;
 
 const getExportedMethodsFn = (
   lastExportedNode: BlockNode,
