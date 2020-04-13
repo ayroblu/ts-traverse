@@ -1,7 +1,6 @@
 import { getCompilerOptions } from "./tshelper";
 import path from "path";
 import ts from "typescript";
-import { readFileSync } from "fs";
 import { AstInfo, BlockNode, Method } from "../types";
 
 const compilerOptions = getCompilerOptions();
@@ -163,19 +162,6 @@ function serializeSymbol(symbol: ts.Symbol, checker: ts.TypeChecker) {
     ),
   };
 }
-// function serializeMySymbol(symbol: ts.Symbol) {
-//   let details = serializeSymbol(symbol);
-
-//   // Get the construct signatures
-//   let constructorType = checker.getTypeOfSymbolAtLocation(
-//     symbol,
-//     symbol.valueDeclaration!
-//   );
-//   details.constructors = constructorType
-//     .getCallSignatures()
-//     .map(serializeSignature);
-//   return details;
-// }
 /** True if this is visible outside this file, false otherwise */
 function isNodeExported(node: ts.Node): boolean {
   return (
