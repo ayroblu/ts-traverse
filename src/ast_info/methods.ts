@@ -10,31 +10,9 @@ const connectedFileNames = new Set<{ from: string; to: string }>();
 const resolvedNodes: BlockNode[] = [];
 const baseUrl = path.resolve(compilerOptions.baseUrl || process.cwd());
 
-export function getAstInfoOld(tempFileName: string): AstInfo {
-  const fileName = path.resolve(tempFileName);
-  if (resolvedFileNames.has(fileName)) {
-    // Recursion termination, reached a repeated node
-    return { resolvedFileNames, connectedFileNames, resolvedNodes };
-  }
-  resolvedFileNames.add(fileName);
-  const node = {
-    name: fileName,
-    methods: [],
-  };
-  resolvedNodes.push(node);
+/** Something */
+export const val = 1;
 
-  const sourceFile = ts.createSourceFile(
-    fileName,
-    readFileSync(fileName).toString(),
-    ts.ScriptTarget.ES2015,
-    /*setParentNodes */ true
-  );
-  if (!sourceFile.isDeclarationFile) {
-    ts.forEachChild(sourceFile!, getImports);
-    // ts.forEachChild(sourceFile!, getExportedMethodsFn(node));
-  }
-  return { resolvedFileNames, connectedFileNames, resolvedNodes };
-}
 type TypeBundle = {
   compilerOptions: ts.CompilerOptions;
   resolvedFileNames: Set<string>;
@@ -66,7 +44,7 @@ export function getAstInfo(
     if (!sourceFile.isDeclarationFile) {
       if (sourceFile.fileName.includes("node_modules")) continue;
 
-      const node = addBlockNode(bundle, sourceFile.fileName);
+      const node = addBlockNode(bundle, path.resolve(sourceFile.fileName));
       ts.forEachChild(sourceFile, getImports);
       ts.forEachChild(sourceFile, getExportedMethodsFn(node, bundle));
     }
@@ -79,6 +57,7 @@ function addBlockNode(bundle: TypeBundle, fileName: string) {
   const node: BlockNode = {
     name: fileName,
     methods: [],
+    variables: [],
   };
   bundle.resolvedNodes.push(node);
   resolvedNodes.push(node);
@@ -114,7 +93,7 @@ function getImportName(node: ts.Node) {
         if (resolvedFileName.includes("node_modules")) return;
 
         connectedFileNames.add({
-          from: getShortPath(fromFileName),
+          from: getShortPath(path.resolve(fromFileName)),
           to: getShortPath(path.resolve(resolvedFileName)),
         });
       } else {
@@ -147,18 +126,24 @@ const getExportedMethodsFn = (
     name = node.name.text;
   }
 
-  if (name && (node as any).name) {
-    let symbol = bundle.checker.getSymbolAtLocation((node as any).name);
+  if (name && !(node as any).name) {
+    lastExportedNode.variables.push(name);
+  } else if (name && (node as any).name) {
     const method: Method = {
+      name,
       symbolPrint: printer.printNode(
         ts.EmitHint.Unspecified,
         node,
         node.getSourceFile()
       ),
     };
+    const symbol = bundle.checker.getSymbolAtLocation((node as any).name);
     if (symbol) {
       const { documentation } = serializeSymbol(symbol, bundle.checker);
       method.documentation = documentation;
+      if (name === "val") {
+        console.log(name, documentation, method);
+      }
     }
     lastExportedNode.methods.push(method);
   }

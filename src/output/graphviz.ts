@@ -17,21 +17,32 @@ export function printDot(
   `);
   if (!isShowGroups) {
     resultLines.push(
-      resolvedNodes
-        .map(({ name }) => name)
-        .map(getShortPath)
-        .sort()
-        .map((path) => `"${path}" [label="${path}"]`)
-        .map((path) => `  ${path}`)
+      _.orderBy(
+        resolvedNodes.map(({ name, ...rest }) => ({
+          ...rest,
+          name: getShortPath(name),
+        })),
+        ({ name }) => name
+      )
+        .map(
+          ({ name, variables, methods }) =>
+            `"${name}" [label="(${name}|${variables.join("\\l")}|${methods
+              .map(({ name }) => name)
+              .join("\\l")})"]`
+        )
+        .map((out) => `  ${out}`)
         .join("\n")
     );
   } else {
     const recursePrint = getRecursePrint();
     const nodeGroup = createNodesAndGroups(
-      resolvedNodes
-        .map(({ name }) => name)
-        .map((fileName) => getShortPath(fileName))
-        .sort()
+      _.orderBy(
+        resolvedNodes.map(({ name, ...rest }) => ({
+          ...rest,
+          name: getShortPath(name),
+        })),
+        ({ name }) => name
+      )
     );
     resultLines.push(recursePrint(nodeGroup));
   }
@@ -47,18 +58,14 @@ export function printDot(
   console.log(resultLines.join("\n"));
 }
 
-function createNodesAndGroups(paths: string[]): BlockNodeGroup {
+function createNodesAndGroups(nodes: BlockNode[]): BlockNodeGroup {
   const nodeGroup: BlockNodeGroup = {
     name: ".",
     childNodes: [],
     childNodeGroups: [],
   };
-  paths.forEach((p) => {
-    const parts = p.split(path.sep);
-    const node: BlockNode = {
-      name: p,
-      methods: [],
-    };
+  nodes.forEach((node) => {
+    const parts = node.name.split(path.sep);
     // remove ./ and create.ts (parent and leaf nodes, leaving middle nodes)
     const middleParts = parts.slice(1, -1);
     const finalNodeGroup = createMidNodeGroups(middleParts, nodeGroup);
@@ -97,8 +104,7 @@ function getRecursePrint() {
     return ([] as string[])
       .concat(
         nodeGroup.childNodes.map((childNode) => {
-          const { name } = childNode;
-          return `"${name}" [label="${name}"]`;
+          return getFormattedLabel(childNode);
         }),
         nodeGroup.childNodeGroups.map((childNodeGroup) => {
           return `subgraph cluster_${num++} {
@@ -111,4 +117,18 @@ function getRecursePrint() {
       .join("\n");
   }
   return recursePrint;
+}
+function getFormattedLabel({ name, variables, methods }: BlockNode) {
+  let subpart = "";
+  if (variables.length || methods.length) {
+    const variablePart = `${variables.join("\\l")}${
+      variables.length ? "\\l" : ""
+    }`;
+    const methodsPart = `${methods
+      // .map(({ symbolPrint }) => symbolPrint.replace(/([{}])/g, "\\$1"))
+      .map(({ name }) => name.replace(/([{}])/g, "\\$1"))
+      .join("\\l")}${methods.length ? "\\l" : ""}`;
+    subpart = `|${variablePart}${methodsPart}`;
+  }
+  return `"${name}" [label="{${name}${subpart}}"]`;
 }

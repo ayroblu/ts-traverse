@@ -13,8 +13,10 @@ export type BlockNodeGroup = {
 export type BlockNode = {
   name: string;
   methods: Method[];
+  variables: string[];
 };
 export type Method = {
+  name: string;
   symbolPrint: string;
   documentation?: string;
 };
