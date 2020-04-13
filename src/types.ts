@@ -1,6 +1,7 @@
 export type AstInfo = {
   connectedFileNames: Set<{ from: string; to: string }>;
   resolvedFileNames: Set<string>;
+  resolvedNodes: BlockNode[];
 };
 export type BlockNodeGroup = {
   // e.g. modules, modules/output
@@ -15,5 +16,5 @@ export type BlockNode = {
 };
 export type Method = {
   symbolPrint: string;
-  comment?: string;
+  documentation?: string;
 };

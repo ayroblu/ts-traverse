@@ -2,7 +2,7 @@ import { getCompilerOptions } from "./tshelper";
 import path from "path";
 import ts from "typescript";
 import { readFileSync } from "fs";
-import { AstInfo, BlockNode } from "../types";
+import { AstInfo, BlockNode, Method } from "../types";
 
 const compilerOptions = getCompilerOptions();
 const resolvedFileNames = new Set<string>();
@@ -10,16 +10,18 @@ const connectedFileNames = new Set<{ from: string; to: string }>();
 const resolvedNodes: BlockNode[] = [];
 const baseUrl = path.resolve(compilerOptions.baseUrl || process.cwd());
 
-export function getAstInfo(tempFileName: string): AstInfo {
+export function getAstInfoOld(tempFileName: string): AstInfo {
   const fileName = path.resolve(tempFileName);
   if (resolvedFileNames.has(fileName)) {
     // Recursion termination, reached a repeated node
-    return { resolvedFileNames, connectedFileNames };
+    return { resolvedFileNames, connectedFileNames, resolvedNodes };
   }
   resolvedFileNames.add(fileName);
-  resolvedNodes.push({
+  const node = {
     name: fileName,
-  });
+    methods: [],
+  };
+  resolvedNodes.push(node);
 
   const sourceFile = ts.createSourceFile(
     fileName,
@@ -29,8 +31,58 @@ export function getAstInfo(tempFileName: string): AstInfo {
   );
   if (!sourceFile.isDeclarationFile) {
     ts.forEachChild(sourceFile!, getImports);
+    // ts.forEachChild(sourceFile!, getExportedMethodsFn(node));
   }
-  return { resolvedFileNames, connectedFileNames };
+  return { resolvedFileNames, connectedFileNames, resolvedNodes };
+}
+type TypeBundle = {
+  compilerOptions: ts.CompilerOptions;
+  resolvedFileNames: Set<string>;
+  connectedFileNames: Set<{ from: string; to: string }>;
+  resolvedNodes: BlockNode[];
+  baseUrl: string;
+  checker: ts.TypeChecker;
+};
+export function getAstInfo(
+  inputFileName: string,
+  bundle?: TypeBundle
+): AstInfo {
+  const fileName = path.resolve(inputFileName);
+  if (!bundle) {
+    bundle = {
+      compilerOptions: getCompilerOptions(),
+      resolvedFileNames: new Set(),
+      connectedFileNames: new Set(),
+      resolvedNodes: [],
+      baseUrl: path.resolve(compilerOptions.baseUrl || process.cwd()),
+      checker: {} as ts.TypeChecker,
+    };
+  }
+
+  const program = ts.createProgram([fileName], bundle.compilerOptions);
+  bundle.checker = program.getTypeChecker();
+
+  for (const sourceFile of program.getSourceFiles()) {
+    if (!sourceFile.isDeclarationFile) {
+      if (sourceFile.fileName.includes("node_modules")) continue;
+
+      const node = addBlockNode(bundle, sourceFile.fileName);
+      ts.forEachChild(sourceFile, getImports);
+      ts.forEachChild(sourceFile, getExportedMethodsFn(node, bundle));
+    }
+  }
+  return { resolvedFileNames, connectedFileNames, resolvedNodes };
+}
+function addBlockNode(bundle: TypeBundle, fileName: string) {
+  bundle.resolvedFileNames.add(fileName);
+  resolvedFileNames.add(fileName);
+  const node: BlockNode = {
+    name: fileName,
+    methods: [],
+  };
+  bundle.resolvedNodes.push(node);
+  resolvedNodes.push(node);
+  return node;
 }
 
 function getImports(node: ts.Node) {
@@ -44,7 +96,6 @@ function getImports(node: ts.Node) {
       ts.forEachChild(node, getImportName);
       return;
   }
-  getExportedMethods(node);
 }
 function getImportName(node: ts.Node) {
   switch (node.kind) {
@@ -66,15 +117,16 @@ function getImportName(node: ts.Node) {
           from: getShortPath(fromFileName),
           to: getShortPath(path.resolve(resolvedFileName)),
         });
-
-        getAstInfo(resolvedFileName);
       } else {
         console.error("fail", node.getText());
       }
   }
 }
 
-function getExportedMethods(node: ts.Node) {
+const getExportedMethodsFn = (
+  lastExportedNode: BlockNode,
+  bundle: TypeBundle
+) => (node: ts.Node) => {
   if (!isNodeExported(node)) {
     return;
   }
@@ -82,11 +134,6 @@ function getExportedMethods(node: ts.Node) {
     newLine: ts.NewLineKind.LineFeed,
     removeComments: true,
   });
-  const program = ts.createProgram(
-    [node.getSourceFile().fileName],
-    compilerOptions
-  );
-  const checker = program.getTypeChecker();
   let name = "";
   if (ts.isFunctionDeclaration(node)) {
     name = node.name!.text;
@@ -101,17 +148,46 @@ function getExportedMethods(node: ts.Node) {
   }
 
   if (name && (node as any).name) {
-    let symbol = checker.getSymbolAtLocation((node as any).name);
+    let symbol = bundle.checker.getSymbolAtLocation((node as any).name);
+    const method: Method = {
+      symbolPrint: printer.printNode(
+        ts.EmitHint.Unspecified,
+        node,
+        node.getSourceFile()
+      ),
+    };
     if (symbol) {
-      // console.log(serializeClass(symbol));
+      const { documentation } = serializeSymbol(symbol, bundle.checker);
+      method.documentation = documentation;
     }
-    console.log(node.getSourceFile().fileName);
-    console.log("### " + name);
-    console.log(
-      printer.printNode(ts.EmitHint.Unspecified, node, node.getSourceFile())
-    );
+    lastExportedNode.methods.push(method);
   }
+};
+/** Serialize a symbol into a json object */
+function serializeSymbol(symbol: ts.Symbol, checker: ts.TypeChecker) {
+  return {
+    name: symbol.getName(),
+    documentation: ts.displayPartsToString(
+      symbol.getDocumentationComment(checker)
+    ),
+    type: checker.typeToString(
+      checker.getTypeOfSymbolAtLocation(symbol, symbol.valueDeclaration!)
+    ),
+  };
 }
+// function serializeMySymbol(symbol: ts.Symbol) {
+//   let details = serializeSymbol(symbol);
+
+//   // Get the construct signatures
+//   let constructorType = checker.getTypeOfSymbolAtLocation(
+//     symbol,
+//     symbol.valueDeclaration!
+//   );
+//   details.constructors = constructorType
+//     .getCallSignatures()
+//     .map(serializeSignature);
+//   return details;
+// }
 /** True if this is visible outside this file, false otherwise */
 function isNodeExported(node: ts.Node): boolean {
   return (
@@ -120,6 +196,9 @@ function isNodeExported(node: ts.Node): boolean {
     0
   );
 }
+/**
+ * Some big comment
+ */
 export function getShortPath(path: string) {
   return "." + path.replace(baseUrl, "");
 }

@@ -6,7 +6,7 @@ import { getShortPath } from "../ast_info";
 // resolvedFileNames = nodes;
 // connectedFileNames = arcs;
 export function printDot(
-  { resolvedFileNames, connectedFileNames }: AstInfo,
+  { connectedFileNames, resolvedNodes }: AstInfo,
   isShowGroups: boolean
 ) {
   const resultLines = [];
@@ -17,7 +17,8 @@ export function printDot(
   `);
   if (!isShowGroups) {
     resultLines.push(
-      Array.from(resolvedFileNames)
+      resolvedNodes
+        .map(({ name }) => name)
         .map(getShortPath)
         .sort()
         .map((path) => `"${path}" [label="${path}"]`)
@@ -27,7 +28,8 @@ export function printDot(
   } else {
     const recursePrint = getRecursePrint();
     const nodeGroup = createNodesAndGroups(
-      Array.from(resolvedFileNames)
+      resolvedNodes
+        .map(({ name }) => name)
         .map((fileName) => getShortPath(fileName))
         .sort()
     );
@@ -55,6 +57,7 @@ function createNodesAndGroups(paths: string[]): BlockNodeGroup {
     const parts = p.split(path.sep);
     const node: BlockNode = {
       name: p,
+      methods: [],
     };
     // remove ./ and create.ts (parent and leaf nodes, leaving middle nodes)
     const middleParts = parts.slice(1, -1);
@@ -88,48 +91,6 @@ function createMidNodeGroups(
   return createMidNodeGroups(middleParts.slice(1), childNodeGroup);
 }
 
-// function clusterFolders(paths: string[]) {
-//   const splitPaths = paths.map((p) => ({
-//     original: p,
-//     split: p.split(path.sep).slice(1),
-//   }));
-//   return groupFolders([], splitPaths, 1);
-// }
-// function groupFolders(
-//   list: (string | (string | string[])[])[],
-//   paths: { original: string; split: string[] }[],
-//   depth: number
-// ) {
-//   const sameFolder = paths.filter((p) => p.split.length === depth);
-//   list = list.concat(sameFolder.map(({ original }) => original));
-//   const grouped = _(paths.filter((p) => p.split.length > depth))
-//     .groupBy(({ split }) => split[depth - 1])
-//     .toPairs()
-//     .value();
-//   for (const [_key, values] of grouped) {
-//     list = list.concat([groupFolders([], values, depth + 1)] as any[]);
-//   }
-//   return list;
-// }
-
-// function getRecursePrint() {
-//   let num = 0;
-//   function recursePrint(list: (string | (string | string[])[])[]): string {
-//     return list
-//       .map((l) => {
-//         if (Array.isArray(l)) {
-//           return `subgraph cluster_${num++} {
-//   ${recursePrint(l).split("\n").join("\n  ")}
-//   }`;
-//         } else {
-//           return `"${l}" [label="${l}"]`;
-//         }
-//       })
-//       .map((path) => `  ${path}`)
-//       .join("\n");
-//   }
-//   return recursePrint;
-// }
 function getRecursePrint() {
   let num = 0;
   function recursePrint(nodeGroup: BlockNodeGroup): string {
@@ -141,6 +102,7 @@ function getRecursePrint() {
         }),
         nodeGroup.childNodeGroups.map((childNodeGroup) => {
           return `subgraph cluster_${num++} {
+    label="${childNodeGroup.name}"
   ${recursePrint(childNodeGroup).split("\n").join("\n  ")}
   }`;
         })

@@ -86,7 +86,7 @@ function generateDocumentation(
     if (name && (node as any).name) {
       let symbol = checker.getSymbolAtLocation((node as any).name);
       if (symbol) {
-        // console.log(serializeClass(symbol));
+        console.log(serializeClass(symbol));
       }
       console.log(node.getSourceFile().fileName);
       console.log("### " + name);
